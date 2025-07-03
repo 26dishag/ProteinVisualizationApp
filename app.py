@@ -3,10 +3,17 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
+import requests
+import io
 
 @st.cache_data
-def load_data(path):
-    return pd.read_csv(path)
+def load_data_from_gdrive(url):
+    # Extract file ID from the shared Google Drive link
+    file_id = url.split('/d/')[1].split('/')[0]
+    download_url = f'https://drive.google.com/uc?id={file_id}&export=download'
+    response = requests.get(download_url)
+    response.raise_for_status()
+    return pd.read_csv(io.StringIO(response.text))
 
 def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
     protein_df = protein_df.copy()
@@ -227,9 +234,9 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
 
 st.title("Protein Interactive Visualization")
 
-DATA_PATH = 'data/with_preds_72_balanced.csv'  # Path relative to app.py in your repo
+DATA_URL = "https://drive.google.com/file/d/1DzSyx8MjTP2LDWK6a3i2hzvxSrZIe8eT/view?usp=sharing"
 
-df = load_data(DATA_PATH)
+df = load_data_from_gdrive(DATA_URL)
 
 # Find genes with known peptides
 genes_with_peptides = df.groupby('gene')['known_peptide'].max()
