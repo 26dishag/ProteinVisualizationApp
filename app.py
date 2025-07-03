@@ -3,19 +3,20 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import requests
-import io
+import gdown
 
 @st.cache_data
-def load_data_from_gdrive(url):
-    # Extract file ID from the shared Google Drive link
-    file_id = url.split('/d/')[1].split('/')[0]
-    download_url = f'https://drive.google.com/uc?id={file_id}&export=download'
-    response = requests.get(download_url)
-    response.raise_for_status()
-    return pd.read_csv(io.StringIO(response.text))
+def load_data_from_gdrive(file_id):
+    """
+    Downloads file from Google Drive using gdown and loads into pandas DataFrame.
+    """
+    url = f"https://drive.google.com/uc?id={file_id}"
+    output = "temp.csv"
+    gdown.download(url, output, quiet=True)
+    return pd.read_csv(output)
 
 def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
+    # ... your existing plotting function unchanged ...
     protein_df = protein_df.copy()
     protein_df['predicted_binary'] = (protein_df['predicted_score_bad'] > threshold).astype(int)
 
@@ -234,9 +235,10 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
 
 st.title("Protein Interactive Visualization")
 
-DATA_URL = "https://drive.google.com/file/d/1DzSyx8MjTP2LDWK6a3i2hzvxSrZIe8eT/view?usp=sharing"
+# Use just the file ID here:
+FILE_ID = "1DzSyx8MjTP2LDWK6a3i2hzvxSrZIe8eT"
 
-df = load_data_from_gdrive(DATA_URL)
+df = load_data_from_gdrive(FILE_ID)
 
 # Find genes with known peptides
 genes_with_peptides = df.groupby('gene')['known_peptide'].max()
