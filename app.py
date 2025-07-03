@@ -50,8 +50,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
         rows=5, cols=1,
         shared_xaxes=True,
         vertical_spacing=0.02,
-        # SHORTENED heatmaps vertically here
-        row_heights=[0.05, 0.15, 0.10, 0.02, 0.02],
+        row_heights=[0.05, 0.3, 0.15, 0.03, 0.03],
         subplot_titles=[
             'Residues',
             ' ',
@@ -214,7 +213,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
     fig.update_layout(
         shapes=sep_lines,
         height=850,
-        width=max(1400, len(protein_df) * 25),  # WIDER width here
+        width=max(900, len(protein_df) * 18),
         title_text=f"Protein Visualization — Gene: {protein_df['gene'].iloc[0]} | Accession: {protein_df['accession'].iloc[0]}",
         hovermode='x unified',
         font=dict(size=12, family='Arial, serif'),
