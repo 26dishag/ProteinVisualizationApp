@@ -3,20 +3,22 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
-import gdown
+import zipfile
+import io
 
 @st.cache_data
-def load_data_from_gdrive(file_id):
+def load_data_from_zip(uploaded_zip):
     """
-    Downloads file from Google Drive using gdown and loads into pandas DataFrame.
+    Loads CSV data from an uploaded ZIP file in Streamlit.
     """
-    url = f"https://drive.google.com/uc?id={file_id}"
-    output = "temp.csv"
-    gdown.download(url, output, quiet=True)
-    return pd.read_csv(output)
+    with zipfile.ZipFile(uploaded_zip) as z:
+        # Assumes the first file inside the zip is the CSV
+        csv_filename = z.namelist()[0]
+        with z.open(csv_filename) as csvfile:
+            df = pd.read_csv(csvfile)
+    return df
 
 def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
-    # ... your existing plotting function unchanged ...
     protein_df = protein_df.copy()
     protein_df['predicted_binary'] = (protein_df['predicted_score_bad'] > threshold).astype(int)
 
@@ -235,22 +237,24 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold=0.5):
 
 st.title("Protein Interactive Visualization")
 
-# Use just the file ID here:
-FILE_ID = "1DzSyx8MjTP2LDWK6a3i2hzvxSrZIe8eT"
+uploaded_file = st.file_uploader("Upload a ZIP file containing the data CSV", type=["zip"])
 
-df = load_data_from_gdrive(FILE_ID)
+if uploaded_file is not None:
+    df = load_data_from_zip(uploaded_file)
 
-# Find genes with known peptides
-genes_with_peptides = df.groupby('gene')['known_peptide'].max()
-genes_with_peptides = genes_with_peptides[genes_with_peptides == 1].index.tolist()
+    genes_with_peptides = df.groupby('gene')['known_peptide'].max()
+    genes_with_peptides = genes_with_peptides[genes_with_peptides == 1].index.tolist()
 
-selected_gene = st.selectbox("Select a gene", options=genes_with_peptides)
+    selected_gene = st.selectbox("Select a gene", options=genes_with_peptides)
 
-protein_df = df[df['gene'] == selected_gene].copy()
-protein_df.reset_index(drop=True, inplace=True)
+    protein_df = df[df['gene'] == selected_gene].copy()
+    protein_df.reset_index(drop=True, inplace=True)
 
-threshold = st.slider("Prediction Threshold", min_value=0.0, max_value=1.0, value=0.6, step=0.01)
+    threshold = st.slider("Prediction Threshold", min_value=0.0, max_value=1.0, value=0.6, step=0.01)
 
-fig = interactive_protein_heatmap_with_sites(protein_df, threshold=threshold)
+    fig = interactive_protein_heatmap_with_sites(protein_df, threshold=threshold)
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
+
+else:
+    st.info("Please upload a ZIP file containing the data CSV.")
