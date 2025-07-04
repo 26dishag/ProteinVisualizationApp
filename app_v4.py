@@ -9,6 +9,19 @@ import zipfile
 # Set Streamlit page layout to wide for fullscreen width
 st.set_page_config(layout="wide")
 
+# CSS override to make main container full width
+st.markdown(
+    """
+    <style>
+    .main > div {
+        max-width: 100% !important;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    </style>
+    """, unsafe_allow_html=True
+)
+
 @st.cache_data
 def load_data_from_zip(uploaded_zip):
     with zipfile.ZipFile(uploaded_zip) as z:
@@ -272,7 +285,7 @@ def interactive_protein_heatmap_with_sites(protein_df):
 
     fig.update_layout(
         height=int(1200 * row_height * n_heatmap_rows),
-        width=max(900, len(protein_df) * 15),
+        # Removed fixed width to allow full container width in Streamlit
         margin=dict(t=100, b=150, r=400),
         title_text=f"Protein Visualization — Gene: {protein_df['gene'].iloc[0]} | Accession: {protein_df['accession'].iloc[0]} | Threshold: {threshold:.2f}",
         font=dict(size=11),
