@@ -6,6 +6,9 @@ from plotly.subplots import make_subplots
 from scipy.ndimage import gaussian_filter1d
 import zipfile
 
+# Set Streamlit page layout to wide for fullscreen width
+st.set_page_config(layout="wide")
+
 @st.cache_data
 def load_data_from_zip(uploaded_zip):
     with zipfile.ZipFile(uploaded_zip) as z:
