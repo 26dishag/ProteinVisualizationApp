@@ -246,32 +246,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
             name=f"Site: {site}"
         ))
 
-    peptide_groups_list = []
-    current_peptide = []
-    for idx, flag in enumerate(protein_df['peptide_group']):
-        if flag == 1:
-            current_peptide.append(protein_df['AA'].iloc[idx])
-        else:
-            if current_peptide:
-                peptide_groups_list.append(''.join(current_peptide))
-                current_peptide = []
-    if current_peptide:
-        peptide_groups_list.append(''.join(current_peptide))
-
-    peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
-
-    fig.add_annotation(
-        text=f"<b>Predicted Ligands:</b><br>{peptide_text}",
-        xref="paper", yref="paper",
-        x=1.15, y=1,
-        showarrow=False,
-        font=dict(size=12),
-        align="left",
-        bordercolor="black",
-        borderwidth=1,
-        bgcolor="rgba(255, 255, 255, 0.8)"
-    )
-
     fig.update_layout(
         autosize=True,
         width=None,
@@ -293,8 +267,10 @@ def interactive_protein_heatmap_with_sites(protein_df):
         )
     )
 
-    return fig
+    # Return figure and peptide groups
+    return fig, protein_df
 
+# Streamlit App starts here
 st.title("Protein Interactive Visualization with Predicted Peptide Groups")
 
 uploaded_file = st.file_uploader("Upload a ZIP file containing the data CSV", type=["zip"])
@@ -311,7 +287,27 @@ if uploaded_file is not None:
         selected_gene = st.selectbox("Select a gene", options=genes_with_peptides)
         protein_df = df[df['gene'] == selected_gene].copy().reset_index(drop=True)
 
-        fig = interactive_protein_heatmap_with_sites(protein_df)
+        fig, processed_df = interactive_protein_heatmap_with_sites(protein_df)
+
+        # Extract predicted peptide groups sequences
+        peptide_groups_list = []
+        current_peptide = []
+        for idx, flag in enumerate(processed_df['peptide_group']):
+            if flag == 1:
+                current_peptide.append(processed_df['AA'].iloc[idx])
+            else:
+                if current_peptide:
+                    peptide_groups_list.append(''.join(current_peptide))
+                    current_peptide = []
+        if current_peptide:
+            peptide_groups_list.append(''.join(current_peptide))
+
+        peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
+
+        # Display the ligands always visible
+        st.markdown(f"### Predicted Ligands:")
+        st.markdown(peptide_text, unsafe_allow_html=True)
+
         st.plotly_chart(fig, use_container_width=True)
 
 else:
