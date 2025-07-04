@@ -71,21 +71,9 @@ def find_peptide_groups(predicted_binary, merge_distance=2, min_length=6):
                 peptide_group_labels[pos] = 1
     return peptide_group_labels
 
-def interactive_protein_heatmap_with_sites(protein_df):
+def interactive_protein_heatmap_with_sites(protein_df, threshold):
     protein_df = protein_df.copy()
 
-    possible_thresholds = np.linspace(0.4, 0.8, 20)
-    selected_threshold = None
-    for t in possible_thresholds:
-        predicted_binary = (protein_df['predicted_score_bad'] > t).astype(int)
-        peptide_groups = find_peptide_groups(predicted_binary.values, merge_distance=2, min_length=6)
-        if 0 < peptide_groups.sum() < 0.15 * len(protein_df):
-            selected_threshold = t
-            break
-    if selected_threshold is None:
-        selected_threshold = 0.6
-
-    threshold = selected_threshold
     protein_df['predicted_binary'] = (protein_df['predicted_score_bad'] > threshold).astype(int)
     peptide_groups = find_peptide_groups(protein_df['predicted_binary'].values, merge_distance=2, min_length=6)
     protein_df['peptide_group'] = peptide_groups
@@ -251,7 +239,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         width=None,
         height=int(1200 * row_height * n_heatmap_rows),
         margin=dict(t=100, b=150, r=100),
-        title_text=f"Protein Visualization — Gene: {protein_df['gene'].iloc[0]} | Accession: {protein_df['accession'].iloc[0]} | Threshold: {threshold:.2f}",
         font=dict(size=11),
         hovermode='x unified',
         legend=dict(
@@ -267,7 +254,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         )
     )
 
-    # Return figure and peptide groups
     return fig, protein_df
 
 # Streamlit App starts here
@@ -287,9 +273,17 @@ if uploaded_file is not None:
         selected_gene = st.selectbox("Select a gene", options=genes_with_peptides)
         protein_df = df[df['gene'] == selected_gene].copy().reset_index(drop=True)
 
-        fig, processed_df = interactive_protein_heatmap_with_sites(protein_df)
+        threshold = st.slider(
+            "Select threshold for prediction",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.6,
+            step=0.01
+        )
 
-        # Extract predicted peptide groups sequences
+        fig, processed_df = interactive_protein_heatmap_with_sites(protein_df, threshold)
+
+        # Extract predicted peptide groups
         peptide_groups_list = []
         current_peptide = []
         for idx, flag in enumerate(processed_df['peptide_group']):
@@ -302,13 +296,13 @@ if uploaded_file is not None:
         if current_peptide:
             peptide_groups_list.append(''.join(current_peptide))
 
+        peptide_count = len(peptide_groups_list)
         peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
 
-        # Display the ligands always visible
-        st.markdown(f"### Predicted Ligands:")
-        st.markdown(peptide_text, unsafe_allow_html=True)
-
         st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown(f"### Predicted Ligands (Count: {peptide_count})")
+        st.markdown(peptide_text, unsafe_allow_html=True)
 
 else:
     st.info("Please upload a ZIP file containing the data CSV.")
