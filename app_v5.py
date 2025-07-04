@@ -74,7 +74,6 @@ def find_peptide_groups(predicted_binary, merge_distance=2, min_length=6):
 def interactive_protein_heatmap_with_sites(protein_df):
     protein_df = protein_df.copy()
 
-    # Auto-select threshold based on peptide group size
     possible_thresholds = np.linspace(0.4, 0.8, 20)
     selected_threshold = None
     for t in possible_thresholds:
@@ -84,7 +83,7 @@ def interactive_protein_heatmap_with_sites(protein_df):
             selected_threshold = t
             break
     if selected_threshold is None:
-        selected_threshold = 0.6  # fallback threshold
+        selected_threshold = 0.6
 
     threshold = selected_threshold
     protein_df['predicted_binary'] = (protein_df['predicted_score_bad'] > threshold).astype(int)
@@ -158,7 +157,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         subplot_titles=[None] * n_heatmap_rows
     )
 
-    # Residues row
     fig.add_trace(go.Heatmap(
         z=[[0] * len(positions)],
         x=positions,
@@ -173,7 +171,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         zsmooth=False
     ), row=1, col=1)
 
-    # Peptide Residues row
     fig.add_trace(go.Heatmap(
         z=[[0] * len(positions)],
         x=positions,
@@ -188,7 +185,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         zsmooth=False
     ), row=2, col=1)
 
-    # Data rows heatmaps
     for i, name in enumerate(data_rows.keys(), 3):
         colorscale = pastel_seq if name in ['Known Peptide', 'Binary Prediction', 'Predicted Score'] else 'Blues'
         if name == 'Predicted Peptides':
@@ -204,7 +200,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
             xgap=0, ygap=0
         ), row=i, col=1)
 
-    # Secondary structure heatmap
     fig.add_trace(go.Heatmap(
         z=[ss_numeric],
         x=positions,
@@ -217,7 +212,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
         zsmooth=False
     ), row=n_heatmap_rows - 1, col=1)
 
-    # Sites heatmap
     fig.add_trace(go.Heatmap(
         z=[site_numeric],
         x=positions,
@@ -230,12 +224,10 @@ def interactive_protein_heatmap_with_sites(protein_df):
         zsmooth=False
     ), row=n_heatmap_rows, col=1)
 
-    # X axis ticks only on bottom
     for r in range(1, n_heatmap_rows + 1):
         show_ticks = (r == n_heatmap_rows)
         fig.update_xaxes(showticklabels=show_ticks, row=r, col=1)
 
-    # Secondary structure legend
     for ss_code, color in zip(ss_map_full.keys(), ss_colors):
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode='markers',
@@ -245,7 +237,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
             name=f"SS: {ss_map_full[ss_code]}"
         ))
 
-    # Sites legend
     for site, color in zip(site_types, site_colors_list):
         fig.add_trace(go.Scatter(
             x=[None], y=[None], mode='markers',
@@ -255,7 +246,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
             name=f"Site: {site}"
         ))
 
-    # Extract predicted peptide groups sequences
     peptide_groups_list = []
     current_peptide = []
     for idx, flag in enumerate(protein_df['peptide_group']):
@@ -270,7 +260,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
 
     peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
 
-    # Add annotation with predicted ligands
     fig.add_annotation(
         text=f"<b>Predicted Ligands:</b><br>{peptide_text}",
         xref="paper", yref="paper",
@@ -284,9 +273,10 @@ def interactive_protein_heatmap_with_sites(protein_df):
     )
 
     fig.update_layout(
+        autosize=True,
+        width=None,
         height=int(1200 * row_height * n_heatmap_rows),
-        # Removed fixed width to allow full container width in Streamlit
-        margin=dict(t=100, b=150, r=400),
+        margin=dict(t=100, b=150, r=100),
         title_text=f"Protein Visualization — Gene: {protein_df['gene'].iloc[0]} | Accession: {protein_df['accession'].iloc[0]} | Threshold: {threshold:.2f}",
         font=dict(size=11),
         hovermode='x unified',
@@ -305,7 +295,6 @@ def interactive_protein_heatmap_with_sites(protein_df):
 
     return fig
 
-# Streamlit App starts here
 st.title("Protein Interactive Visualization with Predicted Peptide Groups")
 
 uploaded_file = st.file_uploader("Upload a ZIP file containing the data CSV", type=["zip"])
@@ -313,7 +302,6 @@ uploaded_file = st.file_uploader("Upload a ZIP file containing the data CSV", ty
 if uploaded_file is not None:
     df = load_data_from_zip(uploaded_file)
 
-    # Filter genes with known peptides
     genes_with_peptides = df.groupby('gene')['known_peptide'].max()
     genes_with_peptides = genes_with_peptides[genes_with_peptides == 1].index.tolist()
 
