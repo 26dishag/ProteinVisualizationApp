@@ -9,8 +9,9 @@ import zipfile
 # Set Streamlit page layout to wide
 st.set_page_config(layout="wide")
 
-# CSS override for full width
-st.markdown("""
+# CSS override to make main container full width
+st.markdown(
+    """
     <style>
     .main > div {
         max-width: 100% !important;
@@ -18,7 +19,8 @@ st.markdown("""
         padding-right: 1rem;
     }
     </style>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True
+)
 
 @st.cache_data
 def load_data_from_zip(uploaded_zip):
@@ -102,11 +104,10 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         'relASA': normalize(protein_df['relASA'].fillna(0).values),
     }
 
-    sigma_horizontal = 0.2
-    for key in ['Predicted Score', 'Binary Prediction', 'Conservation', 'Pathogenicity', 'relASA']:
-        data_rows[key] = gaussian_filter1d(data_rows[key], sigma=sigma_horizontal)
-
-    smoothed_binary = gaussian_filter1d(data_rows['Binary Prediction'], sigma=smoothing_sigma)
+    if smoothing_sigma > 0:
+        smoothed_binary = gaussian_filter1d(data_rows['Binary Prediction'], sigma=smoothing_sigma)
+    else:
+        smoothed_binary = data_rows['Binary Prediction']
 
     pastel_seq = [
         [0.0, '#fce4ec'], [0.2, '#f8bbd0'], [0.4, '#f48fb1'],
@@ -131,7 +132,11 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
     site_colorscale = [[i / (len(site_types) - 1), site_colors_list[i % len(site_colors_list)]] for i in range(len(site_types))]
     site_numeric = [site_map[s] for s in protein_df['sites']]
 
-    all_rows = ['Residues', 'Peptide Residues', 'Predicted Score', 'Binary Prediction (Smoothed)', 'Known Peptide', 'Predicted Peptides', 'Conservation', 'Pathogenicity', 'relASA', 'Secondary Structure', 'Sites']
+    all_rows = [
+        'Residues', 'Peptide Residues', 'Predicted Score', 'Smoothed Binary Prediction',
+        'Known Peptide', 'Predicted Peptides', 'Conservation', 'Pathogenicity', 'relASA',
+        'Secondary Structure', 'Sites'
+    ]
     n_heatmap_rows = len(all_rows)
     row_height = 0.05
     row_heights = [row_height] * n_heatmap_rows
@@ -144,6 +149,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         subplot_titles=[None] * n_heatmap_rows
     )
 
+    # Residues
     fig.add_trace(go.Heatmap(
         z=[[0] * len(positions)],
         x=positions,
@@ -158,6 +164,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         zsmooth=False
     ), row=1, col=1)
 
+    # Peptide Residues
     fig.add_trace(go.Heatmap(
         z=[[0] * len(positions)],
         x=positions,
@@ -172,6 +179,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         zsmooth=False
     ), row=2, col=1)
 
+    # Predicted Score
     fig.add_trace(go.Heatmap(
         z=[data_rows['Predicted Score']],
         x=positions,
@@ -183,10 +191,11 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         xgap=0, ygap=0
     ), row=3, col=1)
 
+    # Smoothed Binary Prediction
     fig.add_trace(go.Heatmap(
         z=[smoothed_binary],
         x=positions,
-        y=['Binary Prediction (Smoothed)'],
+        y=['Smoothed Binary Prediction'],
         colorscale=pastel_seq,
         showscale=False,
         zsmooth='fast',
@@ -194,23 +203,31 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         xgap=0, ygap=0
     ), row=4, col=1)
 
-    data_row_names = ['Known Peptide', 'Predicted Peptides', 'Conservation', 'Pathogenicity', 'relASA']
-    for idx, name in enumerate(data_row_names, start=5):
-        colorscale_curr = pastel_seq if name in ['Known Peptide'] else 'Blues'
-        if name == 'Predicted Peptides':
-            colorscale_curr = [[0, 'white'], [1, '#c2185b']]
+    # Remaining data rows
+    row_mapping = {
+        'Known Peptide': 5,
+        'Predicted Peptides': 6,
+        'Conservation': 7,
+        'Pathogenicity': 8,
+        'relASA': 9
+    }
 
+    for name, row in row_mapping.items():
+        colorscale = pastel_seq if name in ['Known Peptide', 'Predicted Score'] else 'Blues'
+        if name == 'Predicted Peptides':
+            colorscale = [[0, 'white'], [1, '#c2185b']]
         fig.add_trace(go.Heatmap(
             z=[data_rows[name]],
             x=positions,
             y=[name],
-            colorscale=colorscale_curr,
+            colorscale=colorscale,
             showscale=False,
             zsmooth='fast',
             hoverinfo='x+y+z',
             xgap=0, ygap=0
-        ), row=idx, col=1)
+        ), row=row, col=1)
 
+    # Secondary Structure
     fig.add_trace(go.Heatmap(
         z=[ss_numeric],
         x=positions,
@@ -221,8 +238,9 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         text=[[ss_map_full.get(ss, 'Unknown') for ss in protein_df['SS'].fillna('-')]],
         xgap=0, ygap=0,
         zsmooth=False
-    ), row=n_heatmap_rows - 1, col=1)
+    ), row=10, col=1)
 
+    # Sites
     fig.add_trace(go.Heatmap(
         z=[site_numeric],
         x=positions,
@@ -233,18 +251,50 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
         text=[[f'Site: {s}' for s in protein_df['sites']]],
         xgap=0, ygap=0,
         zsmooth=False
-    ), row=n_heatmap_rows, col=1)
+    ), row=11, col=1)
 
     for r in range(1, n_heatmap_rows + 1):
         show_ticks = (r == n_heatmap_rows)
         fig.update_xaxes(showticklabels=show_ticks, row=r, col=1)
 
+    # Secondary Structure legend
+    for ss_code, color in zip(ss_map_full.keys(), ss_colors):
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode='markers',
+            marker=dict(size=10, color=color),
+            legendgroup='SS',
+            showlegend=True,
+            name=f"SS: {ss_map_full[ss_code]}"
+        ))
+
+    # Sites legend
+    for site, color in zip(site_types, site_colors_list):
+        fig.add_trace(go.Scatter(
+            x=[None], y=[None], mode='markers',
+            marker=dict(size=10, color=color),
+            legendgroup='Sites',
+            showlegend=True,
+            name=f"Site: {site}"
+        ))
+
     fig.update_layout(
         autosize=True,
+        width=None,
         height=int(1200 * row_height * n_heatmap_rows),
         margin=dict(t=100, b=150, r=100),
         font=dict(size=11),
-        hovermode='x unified'
+        hovermode='x unified',
+        legend=dict(
+            yanchor="top",
+            y=-0.15,
+            xanchor="center",
+            x=0.5,
+            orientation="h",
+            bgcolor="rgba(255,255,255,0.9)",
+            bordercolor="black",
+            borderwidth=1,
+            font=dict(size=11)
+        )
     )
 
     return fig, protein_df
@@ -275,7 +325,7 @@ if uploaded_file is not None:
         )
 
         smoothing_sigma = st.slider(
-            "Select smoothing sigma for binary prediction",
+            "Select smoothing sigma for binary prediction (0 = no smoothing)",
             min_value=0.0,
             max_value=3.0,
             value=0.0,
@@ -284,6 +334,7 @@ if uploaded_file is not None:
 
         fig, processed_df = interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigma)
 
+        # Extract predicted peptide groups
         peptide_groups_list = []
         current_peptide = []
         for idx, flag in enumerate(processed_df['peptide_group']):
