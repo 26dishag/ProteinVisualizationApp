@@ -183,7 +183,7 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
     ]
     n_heatmap_rows = len(all_rows)
     row_height = 0.05
-    row_heights = [row_height, row_height, 0.01] + [row_height] * (n_heatmap_rows - 4) + [0.01]
+    row_heights = [row_height, row_height, 0.01] + [0.03, 0.03, 0.03, 0.03, 0.02, 0.02, 0.02, 0.03, 0.03, 0.01]
 
     fig = make_subplots(
         rows=n_heatmap_rows, cols=1,
