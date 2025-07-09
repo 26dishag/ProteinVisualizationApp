@@ -177,13 +177,18 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
 
     # Because we added 1 row for Peptide Hotspots, increase heatmap rows count by 1
     all_rows = [
-        'Residues', 'Peptide Residues', 'Peptide Hotspots', 'Predicted Score', 'Smoothed Binary Prediction',
+        'Residues', 'Peptide Residues', 'Peptide Hotspots', 'Signal Peptide/Strand', 'Predicted Score', 'Smoothed Binary Prediction',
         'Known Peptide', 'Predicted Peptides', 'Conservation', 'Pathogenicity', 'relASA',
-        'Secondary Structure', 'Sites', 'Signal Peptide/Strand'
+        'Secondary Structure', 'Sites'
     ]
     n_heatmap_rows = len(all_rows)
     row_height = 0.05
-    row_heights = [row_height, row_height, 0.01] + [row_height] * (n_heatmap_rows - 3)
+    row_heights = []
+    for i in range(n_heatmap_rows):
+        if i in [2, 3]:
+            row_heights.append(0.01)  # very thin rows for hotspots & signal peptide
+        else:
+            row_heights.append(row_height)
 
     fig = make_subplots(
         rows=n_heatmap_rows, cols=1,
