@@ -76,9 +76,10 @@ def underline_special_residues(protein_df):
     underline = np.zeros(n, dtype=bool)
 
     protein_df = protein_df.reset_index(drop=True)
-
+    
     dibasic_indices = protein_df.index[protein_df['sites'].str.contains('dibasic', case=False, na=False)].tolist()
     cysteine_indices = protein_df.index[protein_df['sites'].str.contains('cysteine', case=False, na=False)].tolist()
+    
 
     ss_flags = protein_df.get('signal_peptide_or_Strand', pd.Series(np.zeros(n))).values
 
@@ -110,6 +111,14 @@ def underline_special_residues(protein_df):
     return underline
 
 def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigma):
+    # Ensure 'sites' column exists
+    site_cols = [col for col in protein_df.columns if col.startswith('sites_')]
+    if site_cols:
+        protein_df['sites'] = protein_df[site_cols].idxmax(axis=1).str.replace('sites_', '')
+        protein_df.loc[protein_df[site_cols].sum(axis=1) == 0, 'sites'] = 'None'
+    else:
+        protein_df['sites'] = 'None'
+
     protein_df = protein_df.copy()
     protein_df['predicted_binary'] = (protein_df['predicted_score_bad'] > threshold).astype(int)
     peptide_groups = find_peptide_groups(protein_df['predicted_binary'].values, merge_distance=2, min_length=6)
