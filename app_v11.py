@@ -227,28 +227,28 @@ if uploaded_file is not None:
     protein_df = df[df['gene'] == selected_gene].copy().reset_index(drop=True)
 
 
-        threshold = st.slider("Select threshold for prediction", min_value=0.0, max_value=1.0, value=0.6, step=0.01)
-        smoothing_sigma = st.slider("Select smoothing sigma for binary prediction (0 = no smoothing)", min_value=0.0, max_value=3.0, value=0.0, step=0.1)
+    threshold = st.slider("Select threshold for prediction", min_value=0.0, max_value=1.0, value=0.6, step=0.01)
+    smoothing_sigma = st.slider("Select smoothing sigma for binary prediction (0 = no smoothing)", min_value=0.0, max_value=3.0, value=0.0, step=0.1)
 
-        fig, processed_df = interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigma)
+    fig, processed_df = interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigma)
 
-        peptide_groups_list = []
-        current_peptide = []
-        for idx, flag in enumerate(processed_df['peptide_group']):
-            if flag == 1:
-                current_peptide.append(processed_df['AA'].iloc[idx])
-            else:
-                if current_peptide:
-                    peptide_groups_list.append(''.join(current_peptide))
-                    current_peptide = []
-        if current_peptide:
-            peptide_groups_list.append(''.join(current_peptide))
+    peptide_groups_list = []
+    current_peptide = []
+    for idx, flag in enumerate(processed_df['peptide_group']):
+        if flag == 1:
+            current_peptide.append(processed_df['AA'].iloc[idx])
+        else:
+            if current_peptide:
+                peptide_groups_list.append(''.join(current_peptide))
+                current_peptide = []
+    if current_peptide:
+        peptide_groups_list.append(''.join(current_peptide))
 
-        peptide_count = len(peptide_groups_list)
-        peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
+    peptide_count = len(peptide_groups_list)
+    peptide_text = "<br>".join(peptide_groups_list) if peptide_groups_list else "None"
 
-        st.plotly_chart(fig, use_container_width=True)
-        st.markdown(f"### Predicted Ligands (Count: {peptide_count})")
-        st.markdown(peptide_text, unsafe_allow_html=True)
+    st.plotly_chart(fig, use_container_width=True)
+    st.markdown(f"### Predicted Ligands (Count: {peptide_count})")
+    st.markdown(peptide_text, unsafe_allow_html=True)
 else:
     st.info("Please upload a ZIP file containing the data CSV.")
