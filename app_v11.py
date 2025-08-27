@@ -222,14 +222,10 @@ uploaded_file = st.file_uploader("Upload a ZIP file containing the data CSV", ty
 
 if uploaded_file is not None:
     df = load_data_from_zip(uploaded_file)
-    genes_with_peptides = df.groupby('gene')['known_peptide'].max()
-    genes_with_peptides = genes_with_peptides[genes_with_peptides == 1].index.tolist()
+    all_genes = df['gene'].unique().tolist()
+    selected_gene = st.selectbox("Select a gene", options=all_genes)
+    protein_df = df[df['gene'] == selected_gene].copy().reset_index(drop=True)
 
-    if not genes_with_peptides:
-        st.warning("No genes with known peptides found in data.")
-    else:
-        selected_gene = st.selectbox("Select a gene", options=genes_with_peptides)
-        protein_df = df[df['gene'] == selected_gene].copy().reset_index(drop=True)
 
         threshold = st.slider("Select threshold for prediction", min_value=0.0, max_value=1.0, value=0.6, step=0.01)
         smoothing_sigma = st.slider("Select smoothing sigma for binary prediction (0 = no smoothing)", min_value=0.0, max_value=3.0, value=0.0, step=0.1)
