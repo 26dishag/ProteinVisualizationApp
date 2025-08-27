@@ -144,12 +144,14 @@ def interactive_protein_heatmap_with_sites(protein_df, threshold, smoothing_sigm
     data_rows = {
         'Predicted Score': normalize(protein_df['predicted_score_bad'].values),
         'Binary Prediction': normalize(protein_df['predicted_binary'].values),
+        'Smoothed Binary Prediction': smoothed_binary,
         'Known Peptide': normalize(protein_df['known_peptide'].values),
         'Predicted Peptides': protein_df['peptide_group'].values,
         'Conservation': normalize(protein_df['conservation_norm'].fillna(0).values),
         'Pathogenicity': normalize(protein_df['pathogenicity'].fillna(0).values),
         'relASA': normalize(protein_df['relASA'].fillna(0).values),
     }
+
 
     if smoothing_sigma > 0:
         smoothed_binary = gaussian_filter1d(data_rows['Binary Prediction'], sigma=smoothing_sigma)
